@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+:root {
+  --navy: #1A2744;
+  --accent: #2E86C1;
+  --green: #28A745;
+  --orange: #F39C12;
+  --red: #DC3545;
+  --bg: #F8FAFC;
+  --card: #ffffff;
+  --text: #1E293B;
+  --muted: #64748B;
+}
+
+@theme inline {
+  --color-navy: var(--navy);
+  --color-accent: var(--accent);
+  --color-green: var(--green);
+  --color-orange: var(--orange);
+  --color-red: var(--red);
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+/* Pulse animation for loading */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-break {
+    page-break-before: always;
+  }
+
+  /* Keep cards compact */
+  .shadow-sm {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  /* Ensure SVG colors print */
+  svg circle {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
