@@ -95,34 +95,51 @@ function safe<T>(fn: () => T, fallback: T): T {
 // Haloscan fetchers
 // ---------------------------------------------------------------------------
 
-async function fetchHaloscanOverview(domain: string) {
+async function fetchHaloscanOverview(domain: string): Promise<{ data: Record<string, unknown> | null; status: string }> {
   const key = process.env.HALOSCAN_API_KEY;
-  if (!key) return null;
+  if (!key) return { data: null, status: "NO_API_KEY" };
   try {
-    const res = await fetch(
-      `https://api.haloscan.com/v2/domains/overview?input=${encodeURIComponent(domain)}`,
-      { headers: { "x-api-key": key }, signal: AbortSignal.timeout(15000) }
-    );
-    if (!res.ok) return null;
+    const url = `https://api.haloscan.com/v2/domains/overview?input=${encodeURIComponent(domain)}`;
+    console.log("[Haloscan Overview] Fetching:", url);
+    const res = await fetch(url, {
+      headers: { "x-api-key": key },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error(`[Haloscan Overview] HTTP ${res.status}: ${text.slice(0, 200)}`);
+      return { data: null, status: `HTTP_${res.status}` };
+    }
     const data = await res.json();
-    return data;
-  } catch {
-    return null;
+    console.log("[Haloscan Overview] Success, keys:", Object.keys(data));
+    return { data, status: "OK" };
+  } catch (err) {
+    console.error("[Haloscan Overview] Error:", err);
+    return { data: null, status: `ERROR: ${(err as Error).message}` };
   }
 }
 
-async function fetchHaloscanPositions(domain: string) {
+async function fetchHaloscanPositions(domain: string): Promise<{ data: Record<string, unknown> | null; status: string }> {
   const key = process.env.HALOSCAN_API_KEY;
-  if (!key) return null;
+  if (!key) return { data: null, status: "NO_API_KEY" };
   try {
-    const res = await fetch(
-      `https://api.haloscan.com/v2/domains/positions?input=${encodeURIComponent(domain)}&lineCount=20&order_by=traffic&order=desc`,
-      { headers: { "x-api-key": key }, signal: AbortSignal.timeout(15000) }
-    );
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
+    const url = `https://api.haloscan.com/v2/domains/positions?input=${encodeURIComponent(domain)}&lineCount=20&order_by=traffic&order=desc`;
+    console.log("[Haloscan Positions] Fetching:", url);
+    const res = await fetch(url, {
+      headers: { "x-api-key": key },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error(`[Haloscan Positions] HTTP ${res.status}: ${text.slice(0, 200)}`);
+      return { data: null, status: `HTTP_${res.status}` };
+    }
+    const data = await res.json();
+    console.log("[Haloscan Positions] Success, keys:", Object.keys(data));
+    return { data, status: "OK" };
+  } catch (err) {
+    console.error("[Haloscan Positions] Error:", err);
+    return { data: null, status: `ERROR: ${(err as Error).message}` };
   }
 }
 
@@ -140,37 +157,55 @@ function dfsHeaders() {
   };
 }
 
-async function fetchLighthouse(domain: string) {
+async function fetchLighthouse(domain: string): Promise<{ data: Record<string, unknown> | null; status: string }> {
   const headers = dfsHeaders();
-  if (!headers) return null;
+  if (!headers) return { data: null, status: "NO_CREDENTIALS" };
   try {
+    const targetUrl = `https://${domain}/`;
+    console.log("[DataForSEO Lighthouse] Fetching for:", targetUrl);
     const res = await fetch("https://api.dataforseo.com/v3/on_page/lighthouse/live/json", {
       method: "POST",
       headers,
-      body: JSON.stringify([{ url: `https://${domain}/`, enable_javascript: true }]),
+      body: JSON.stringify([{ url: targetUrl, enable_javascript: true }]),
       signal: AbortSignal.timeout(30000),
     });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error(`[DataForSEO Lighthouse] HTTP ${res.status}: ${text.slice(0, 300)}`);
+      return { data: null, status: `HTTP_${res.status}` };
+    }
+    const data = await res.json();
+    console.log("[DataForSEO Lighthouse] Success, status_code:", data?.status_code, "tasks:", data?.tasks?.length);
+    return { data, status: "OK" };
+  } catch (err) {
+    console.error("[DataForSEO Lighthouse] Error:", err);
+    return { data: null, status: `ERROR: ${(err as Error).message}` };
   }
 }
 
-async function fetchOnPage(domain: string) {
+async function fetchOnPage(domain: string): Promise<{ data: Record<string, unknown> | null; status: string }> {
   const headers = dfsHeaders();
-  if (!headers) return null;
+  if (!headers) return { data: null, status: "NO_CREDENTIALS" };
   try {
+    const targetUrl = `https://${domain}/`;
+    console.log("[DataForSEO OnPage] Fetching for:", targetUrl);
     const res = await fetch("https://api.dataforseo.com/v3/on_page/instant_pages", {
       method: "POST",
       headers,
-      body: JSON.stringify([{ url: `https://${domain}/`, enable_javascript: true }]),
+      body: JSON.stringify([{ url: targetUrl, enable_javascript: true }]),
       signal: AbortSignal.timeout(30000),
     });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error(`[DataForSEO OnPage] HTTP ${res.status}: ${text.slice(0, 300)}`);
+      return { data: null, status: `HTTP_${res.status}` };
+    }
+    const data = await res.json();
+    console.log("[DataForSEO OnPage] Success, status_code:", data?.status_code, "tasks:", data?.tasks?.length);
+    return { data, status: "OK" };
+  } catch (err) {
+    console.error("[DataForSEO OnPage] Error:", err);
+    return { data: null, status: `ERROR: ${(err as Error).message}` };
   }
 }
 
@@ -465,18 +500,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Domaine requis" }, { status: 400 });
     }
 
+    console.log("[Audit] Starting audit for domain:", domain);
+
     // Run all API calls in parallel
-    const [haloscanOverview, haloscanPositions, lighthouseRaw, onPageRaw] = await Promise.all([
+    const [haloscanOverviewRes, haloscanPositionsRes, lighthouseRes, onPageRes] = await Promise.all([
       fetchHaloscanOverview(domain),
       fetchHaloscanPositions(domain),
       fetchLighthouse(domain),
       fetchOnPage(domain),
     ]);
 
+    const _debug = {
+      domain,
+      haloscanOverview: haloscanOverviewRes.status,
+      haloscanPositions: haloscanPositionsRes.status,
+      lighthouse: lighthouseRes.status,
+      onPage: onPageRes.status,
+      envKeys: {
+        haloscan: !!process.env.HALOSCAN_API_KEY,
+        dataforseoLogin: !!process.env.DATAFORSEO_LOGIN,
+        dataforseoPassword: !!process.env.DATAFORSEO_PASSWORD,
+        openai: !!process.env.OPEN_AI_KEY,
+      },
+    };
+    console.log("[Audit] API statuses:", JSON.stringify(_debug));
+
     // Extract structured data
-    const { lighthouse, cwv } = extractLighthouse(lighthouseRaw);
-    const { checks, social, server } = extractOnPage(onPageRaw);
-    const keywords = extractKeywords(haloscanOverview, haloscanPositions);
+    const { lighthouse, cwv } = extractLighthouse(lighthouseRes.data);
+    const { checks, social, server } = extractOnPage(onPageRes.data);
+    const keywords = extractKeywords(haloscanOverviewRes.data, haloscanPositionsRes.data);
     const scores = computeScores(checks, keywords, lighthouse, social);
 
     const partialResult = {
@@ -498,7 +550,7 @@ export async function POST(request: NextRequest) {
       aiRecommendations,
     };
 
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, _debug });
   } catch (err) {
     console.error("Audit API error:", err);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
