@@ -297,12 +297,13 @@ function extractOnPage(raw: Record<string, unknown> | null) {
   if (!raw) return defaults;
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const items = (raw as any)?.tasks?.[0]?.result;
-    if (!items || !items.length) {
-      console.log("[extractOnPage] No items found. Raw keys:", Object.keys(raw), "tasks:", JSON.stringify((raw as any)?.tasks?.map((t: any) => ({ status: t?.status_code, result_count: t?.result?.length })) ?? "none").slice(0, 300));
+    const taskResult = (raw as any)?.tasks?.[0]?.result?.[0];
+    if (!taskResult) {
+      console.log("[extractOnPage] No task result found.");
       return defaults;
     }
-    const page = items[0];
+    // DataForSEO instant_pages: result[0] is a wrapper with { items: [...pages] }
+    const page = taskResult?.items?.[0] ?? taskResult;
     console.log("[extractOnPage] Page keys:", Object.keys(page ?? {}));
     const meta = page?.meta ?? {};
     const onPage = page?.on_page ?? {};
@@ -364,8 +365,12 @@ function extractKeywords(overview: Record<string, unknown> | null, positions: Re
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ov = overview as any;
-    const stats = ov?.data?.metrics?.stats ?? ov?.metrics?.stats ?? {};
-    const breakdown = ov?.data?.positions_breakdown ?? ov?.positions_breakdown ?? {};
+    // Haloscan overview: keys are at root level (metrics, positions_breakdown)
+    const metrics = ov?.metrics ?? ov?.data?.metrics ?? {};
+    const stats = metrics?.stats ?? metrics ?? {};
+    const breakdown = ov?.positions_breakdown ?? ov?.data?.positions_breakdown ?? {};
+
+    console.log("[extractKeywords] Overview metrics keys:", Object.keys(metrics), "stats keys:", Object.keys(stats), "breakdown keys:", Object.keys(breakdown));
 
     defaults.total = stats?.keywords_count ?? stats?.total_keywords ?? 0;
     defaults.estimatedTraffic = stats?.estimated_traffic ?? stats?.traffic ?? 0;
@@ -376,14 +381,17 @@ function extractKeywords(overview: Record<string, unknown> | null, positions: Re
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pos = positions as any;
-    const lines = pos?.data ?? pos?.lines ?? pos?.result ?? [];
+    // Haloscan positions: keywords are in 'results' array
+    const lines = pos?.results ?? pos?.data ?? pos?.lines ?? pos?.result ?? [];
+    console.log("[extractKeywords] Positions: results length:", Array.isArray(lines) ? lines.length : "not array", "first item keys:", Array.isArray(lines) && lines.length > 0 ? Object.keys(lines[0]) : "none");
+
     if (Array.isArray(lines)) {
       defaults.topKeywords = lines.slice(0, 20).map((l: Record<string, unknown>) => ({
         keyword: (l.keyword as string) ?? "",
         position: (l.position as number) ?? 0,
-        volume: (l.volume as number) ?? 0,
-        traffic: (l.traffic as number) ?? 0,
-        url: (l.url as string) ?? "",
+        volume: (l.volume as number) ?? (l.search_volume as number) ?? 0,
+        traffic: (l.traffic as number) ?? (l.estimated_traffic as number) ?? 0,
+        url: (l.url as string) ?? (l.landing_page as string) ?? "",
       }));
     }
   } catch {
