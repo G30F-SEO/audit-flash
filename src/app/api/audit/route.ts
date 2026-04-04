@@ -72,6 +72,7 @@ interface AuditResult {
     server: string;
     encoding: string;
   };
+  aiRecommendations: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -395,6 +396,60 @@ function computeScores(
 }
 
 // ---------------------------------------------------------------------------
+// OpenAI recommendations
+// ---------------------------------------------------------------------------
+
+async function fetchAIRecommendations(domain: string, result: Omit<AuditResult, "aiRecommendations">): Promise<string | null> {
+  const apiKey = process.env.OPEN_AI_KEY;
+  if (!apiKey) return null;
+  try {
+    const prompt = `Tu es un expert SEO senior. Voici les résultats d'un audit SEO pour le domaine "${domain}".
+
+SCORES: Global ${result.scores.global}/100 | On-page ${result.scores.onpage}/100 | Positionnement ${result.scores.rankings}/100 | Performance ${result.scores.performance}/100 | Ergonomie ${result.scores.usability}/100 | Social ${result.scores.social}/100
+
+LIGHTHOUSE: Performance ${result.lighthouse.performance} | Accessibilité ${result.lighthouse.accessibility} | Bonnes pratiques ${result.lighthouse.bestPractices} | SEO ${result.lighthouse.seo}
+
+CORE WEB VITALS: LCP ${result.cwv.lcp}ms | FCP ${result.cwv.fcp}ms | CLS ${result.cwv.cls} | TBT ${result.cwv.tbt}ms | TTFB ${result.cwv.ttfb}ms
+
+CHECKS: Title "${result.checks.title.value}" (${result.checks.title.length} car, OK: ${result.checks.title.ok}) | Description (${result.checks.description.length} car, OK: ${result.checks.description.ok}) | H1 (count: ${result.checks.h1.count}, OK: ${result.checks.h1.ok}) | SSL: ${result.checks.ssl} | Canonical: ${result.checks.canonical} | Sitemap: ${result.checks.sitemap} | Robots: ${result.checks.robots} | Analytics: ${result.checks.analytics} | Images sans alt: ${result.checks.imagesWithoutAlt}/${result.checks.totalImages}
+
+MOTS-CLÉS: ${result.keywords.total} total | Top 3: ${result.keywords.top3} | Top 10: ${result.keywords.top10} | Trafic estimé: ${result.keywords.estimatedTraffic}/mois
+
+SOCIAL: Facebook: ${result.social.facebook ? "Oui" : "Non"} | Instagram: ${result.social.instagram ? "Oui" : "Non"} | LinkedIn: ${result.social.linkedin ? "Oui" : "Non"} | OG Tags: ${result.social.og ? "Oui" : "Non"}
+
+CMS: ${result.server.cms} | Serveur: ${result.server.server}
+
+Génère un rapport de recommandations structuré en markdown avec :
+1. **Diagnostic express** (2-3 phrases résumant la situation)
+2. **Actions prioritaires** (3-5 actions concrètes classées par impact, avec une estimation de difficulté : Facile/Moyen/Complexe)
+3. **Opportunités SEO** (2-3 opportunités de croissance basées sur les mots-clés)
+4. **Points forts** (2-3 éléments positifs à valoriser)
+
+Sois concis, actionnable et orienté business. Le ton doit être professionnel mais accessible pour un dirigeant d'entreprise.`;
+
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 1000,
+        temperature: 0.7,
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.choices?.[0]?.message?.content ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Route handler
 // ---------------------------------------------------------------------------
 
@@ -424,7 +479,7 @@ export async function POST(request: NextRequest) {
     const keywords = extractKeywords(haloscanOverview, haloscanPositions);
     const scores = computeScores(checks, keywords, lighthouse, social);
 
-    const result: AuditResult = {
+    const partialResult = {
       domain,
       timestamp: new Date().toISOString(),
       scores,
@@ -434,6 +489,13 @@ export async function POST(request: NextRequest) {
       keywords,
       social,
       server,
+    };
+
+    const aiRecommendations = await fetchAIRecommendations(domain, partialResult);
+
+    const result: AuditResult = {
+      ...partialResult,
+      aiRecommendations,
     };
 
     return NextResponse.json(result);
