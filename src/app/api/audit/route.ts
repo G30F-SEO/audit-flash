@@ -315,35 +315,46 @@ function extractOnPage(raw: Record<string, unknown> | null) {
     const h1Val = meta?.htags?.h1?.[0] ?? "";
     const h1Count = meta?.htags?.h1?.length ?? 0;
 
+    // DataForSEO checks use inverted boolean names (no_title = true means missing)
     const checks = {
       title: { value: titleVal, length: titleVal.length, ok: titleVal.length > 0 && titleVal.length <= 65 },
       description: { value: descVal, length: descVal.length, ok: descVal.length > 0 && descVal.length <= 160 },
       h1: { value: h1Val, count: h1Count, ok: h1Count === 1 },
-      ssl: page?.url?.startsWith("https") ?? false,
-      canonical: !!onPage?.canonical,
-      robots: !pageChecks?.is_no_index,
-      sitemap: !!pageChecks?.sitemap,
-      viewport: !!meta?.viewport,
-      favicon: !!pageChecks?.has_favicon,
-      analytics: !!pageChecks?.has_google_analytics,
-      imagesWithoutAlt: onPage?.images_without_alt ?? 0,
-      totalImages: onPage?.images_count ?? 0,
+      ssl: pageChecks?.is_https === true || (page?.url?.startsWith("https") ?? false),
+      canonical: pageChecks?.canonical === true || !!meta?.canonical,
+      robots: pageChecks?.is_no_index !== true && meta?.follow !== false,
+      sitemap: pageChecks?.from_sitemap === true,
+      viewport: !pageChecks?.no_encoding_meta_tag,
+      favicon: !pageChecks?.no_favicon && !!meta?.favicon,
+      analytics: pageChecks?.has_micromarkup === true,
+      imagesWithoutAlt: pageChecks?.no_image_alt ? (meta?.images_count ?? 0) : 0,
+      totalImages: meta?.images_count ?? 0,
     };
 
-    const socialLinks = page?.social_links ?? {};
+    // Social media tags from meta.social_media_tags
+    const socialTags = meta?.social_media_tags ?? {};
+    const socialTagsList = Array.isArray(socialTags) ? socialTags : Object.values(socialTags);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const findSocialUrl = (platform: string) => {
+      if (!Array.isArray(socialTagsList)) return null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tag = socialTagsList.find((t: any) => typeof t === "string" && t.includes(platform));
+      return tag ?? null;
+    };
+
     const social = {
-      facebook: socialLinks?.facebook_url ?? null,
-      instagram: socialLinks?.instagram_url ?? null,
-      linkedin: socialLinks?.linkedin_url ?? null,
-      youtube: socialLinks?.youtube_url ?? null,
-      twitter: socialLinks?.twitter_url ?? null,
-      og: !!meta?.open_graph,
+      facebook: findSocialUrl("facebook"),
+      instagram: findSocialUrl("instagram"),
+      linkedin: findSocialUrl("linkedin"),
+      youtube: findSocialUrl("youtube"),
+      twitter: findSocialUrl("twitter"),
+      og: !!socialTags && Object.keys(socialTags).length > 0,
     };
 
     const server = {
-      cms: page?.cms ?? "Inconnu",
+      cms: meta?.generator ?? "Inconnu",
       server: page?.server ?? "Inconnu",
-      encoding: page?.encoding ?? "Inconnu",
+      encoding: page?.content_encoding ?? "Inconnu",
     };
 
     return { checks, social, server };
@@ -365,20 +376,18 @@ function extractKeywords(overview: Record<string, unknown> | null, positions: Re
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ov = overview as any;
-    // Haloscan overview: keys are at root level (metrics, positions_breakdown)
+    // Haloscan overview: metrics.stats contains the keyword data
     const metrics = ov?.metrics ?? ov?.data?.metrics ?? {};
-    const stats = metrics?.stats ?? metrics ?? {};
-    const breakdown = ov?.positions_breakdown ?? ov?.data?.positions_breakdown ?? {};
+    const stats = metrics?.stats ?? {};
 
-    console.log("[extractKeywords] metrics:", JSON.stringify(metrics).slice(0, 500));
-    console.log("[extractKeywords] breakdown:", JSON.stringify(breakdown).slice(0, 500));
+    console.log("[extractKeywords] stats keys:", Object.keys(stats));
 
-    defaults.total = stats?.keywords_count ?? stats?.total_keywords ?? 0;
-    defaults.estimatedTraffic = stats?.estimated_traffic ?? stats?.traffic ?? 0;
-    defaults.top3 = breakdown?.top3 ?? 0;
-    defaults.top10 = breakdown?.top10 ?? 0;
-    defaults.top50 = breakdown?.top50 ?? 0;
-    defaults.top100 = breakdown?.top100 ?? 0;
+    defaults.total = stats?.total_keyword_count ?? stats?.keywords_count ?? 0;
+    defaults.estimatedTraffic = stats?.total_traffic ?? stats?.estimated_traffic ?? 0;
+    defaults.top3 = stats?.top_3_positions ?? 0;
+    defaults.top10 = stats?.top_10_positions ?? 0;
+    defaults.top50 = stats?.top_50_positions ?? 0;
+    defaults.top100 = stats?.top_100_positions ?? 0;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pos = positions as any;

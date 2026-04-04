@@ -205,7 +205,6 @@ function LoadingSkeleton() {
 
 function Section({ title, icon, children, className = "" }: { title: string; icon?: React.ReactNode; children: React.ReactNode; className?: string }) {
   const [visible, setVisible] = useState(false);
-  const ref = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), 100);
