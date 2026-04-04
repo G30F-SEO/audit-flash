@@ -370,7 +370,8 @@ function extractKeywords(overview: Record<string, unknown> | null, positions: Re
     const stats = metrics?.stats ?? metrics ?? {};
     const breakdown = ov?.positions_breakdown ?? ov?.data?.positions_breakdown ?? {};
 
-    console.log("[extractKeywords] Overview metrics keys:", Object.keys(metrics), "stats keys:", Object.keys(stats), "breakdown keys:", Object.keys(breakdown));
+    console.log("[extractKeywords] metrics:", JSON.stringify(metrics).slice(0, 500));
+    console.log("[extractKeywords] breakdown:", JSON.stringify(breakdown).slice(0, 500));
 
     defaults.total = stats?.keywords_count ?? stats?.total_keywords ?? 0;
     defaults.estimatedTraffic = stats?.estimated_traffic ?? stats?.traffic ?? 0;
