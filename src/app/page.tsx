@@ -13,6 +13,7 @@ export default function Home() {
     const clean = domain
       .trim()
       .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
       .replace(/\/+$/, "");
     if (clean) {
       router.push(`/audit/${encodeURIComponent(clean)}`);

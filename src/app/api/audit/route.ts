@@ -146,7 +146,7 @@ async function fetchLighthouse(domain: string) {
     const res = await fetch("https://api.dataforseo.com/v3/on_page/lighthouse/live/json", {
       method: "POST",
       headers,
-      body: JSON.stringify([{ url: `https://www.${domain}/`, enable_javascript: true }]),
+      body: JSON.stringify([{ url: `https://${domain}/`, enable_javascript: true }]),
       signal: AbortSignal.timeout(30000),
     });
     if (!res.ok) return null;
@@ -163,7 +163,7 @@ async function fetchOnPage(domain: string) {
     const res = await fetch("https://api.dataforseo.com/v3/on_page/instant_pages", {
       method: "POST",
       headers,
-      body: JSON.stringify([{ url: `https://www.${domain}/`, enable_javascript: true }]),
+      body: JSON.stringify([{ url: `https://${domain}/`, enable_javascript: true }]),
       signal: AbortSignal.timeout(30000),
     });
     if (!res.ok) return null;
@@ -401,7 +401,11 @@ function computeScores(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const domain = (body.domain as string)?.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    const domain = (body.domain as string)
+      ?.trim()
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .replace(/\/+$/, "");
     if (!domain) {
       return NextResponse.json({ error: "Domaine requis" }, { status: 400 });
     }
