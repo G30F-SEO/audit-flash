@@ -32,7 +32,7 @@ export default function AuditLoading() {
             cy={80}
             r={70}
             fill="none"
-            stroke="#2E86C1"
+            stroke="#2E6AB0"
             strokeWidth={10}
             strokeDasharray={440}
             strokeDashoffset={320}
@@ -42,7 +42,7 @@ export default function AuditLoading() {
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <Zap className="w-8 h-8 text-[#2E86C1]" />
+          <Zap className="w-8 h-8 text-[#2E6AB0]" />
         </div>
       </div>
 
@@ -54,7 +54,7 @@ export default function AuditLoading() {
             <div
               key={i}
               className={`h-1.5 rounded-full transition-all duration-500 ${
-                i <= step ? "w-8 bg-[#2E86C1]" : "w-4 bg-slate-200"
+                i <= step ? "w-8 bg-[#2E6AB0]" : "w-4 bg-slate-200"
               }`}
             />
           ))}

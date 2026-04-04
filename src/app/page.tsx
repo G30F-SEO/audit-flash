@@ -51,13 +51,13 @@ export default function Home() {
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
                 placeholder="exemple.fr"
-                className="w-full h-13 pl-11 pr-4 rounded-xl border border-slate-200 bg-white text-[#1E293B] text-lg placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2E86C1] focus:border-transparent shadow-sm"
+                className="w-full h-13 pl-11 pr-4 rounded-xl border border-slate-200 bg-white text-[#1E293B] text-lg placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2E6AB0] focus:border-transparent shadow-sm"
                 autoFocus
               />
             </div>
             <button
               type="submit"
-              className="h-13 px-6 rounded-xl bg-[#2E86C1] text-white font-semibold text-base hover:bg-[#2573A7] transition-colors shadow-sm cursor-pointer"
+              className="h-13 px-6 rounded-xl bg-[#2E6AB0] text-white font-semibold text-base hover:bg-[#2573A7] transition-colors shadow-sm cursor-pointer"
             >
               Lancer l&apos;audit
             </button>

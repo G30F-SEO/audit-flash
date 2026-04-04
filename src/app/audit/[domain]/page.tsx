@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { Printer, Zap, ExternalLink, ArrowLeft, TrendingUp, Target, Shield, Sparkles } from "lucide-react";
+import { Printer, Zap, ExternalLink, ArrowLeft, TrendingUp, Target, Shield, Sparkles, ChevronDown } from "lucide-react";
 import ScoreGauge from "@/components/score-gauge";
 import CheckItem from "@/components/check-item";
 import KpiCard from "@/components/kpi-card";
@@ -137,7 +137,7 @@ function posBadgeColor(pos: number) {
 
 function barColor(pos: number) {
   if (pos <= 3) return "#28A745";
-  if (pos <= 10) return "#2E86C1";
+  if (pos <= 10) return "#2E6AB0";
   if (pos <= 20) return "#F39C12";
   return "#94A3B8";
 }
@@ -178,20 +178,20 @@ function LoadingSkeleton() {
         <svg width={160} height={160} className="animate-pulse-slow">
           <circle cx={80} cy={80} r={70} fill="none" stroke="#E5E7EB" strokeWidth={10} />
           <circle
-            cx={80} cy={80} r={70} fill="none" stroke="#2E86C1" strokeWidth={10}
+            cx={80} cy={80} r={70} fill="none" stroke="#2E6AB0" strokeWidth={10}
             strokeDasharray={440} strokeDashoffset={320} strokeLinecap="round"
             className="animate-spin" style={{ transformOrigin: "center", animationDuration: "3s" }}
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <Zap className="w-8 h-8 text-[#2E86C1]" />
+          <Zap className="w-8 h-8 text-[#2E6AB0]" />
         </div>
       </div>
       <div className="flex flex-col items-center gap-3">
         <p className="text-lg font-semibold text-[#1A2744]">{msgs[step]}</p>
         <div className="flex gap-1.5">
           {msgs.map((_, i) => (
-            <div key={i} className={`h-1.5 rounded-full transition-all duration-500 ${i <= step ? "w-8 bg-[#2E86C1]" : "w-4 bg-slate-200"}`} />
+            <div key={i} className={`h-1.5 rounded-full transition-all duration-500 ${i <= step ? "w-8 bg-[#2E6AB0]" : "w-4 bg-slate-200"}`} />
           ))}
         </div>
       </div>
@@ -240,6 +240,66 @@ function FadeIn({ delay = 0, children }: { delay?: number; children: React.React
 }
 
 // ---------------------------------------------------------------------------
+// Collapsible keywords table
+// ---------------------------------------------------------------------------
+
+function KeywordsTable({ keywords }: { keywords: AuditResult["keywords"]["topKeywords"] }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 hover:bg-slate-50/50 transition-colors cursor-pointer"
+      >
+        <span className="text-sm font-semibold text-[#1A2744]">
+          Top {keywords.length} mots-cles
+        </span>
+        <ChevronDown
+          className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      <div
+        className={`transition-all duration-500 ease-in-out overflow-hidden ${open ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-t border-b border-slate-100 text-left text-[10px] sm:text-xs text-[#64748B] uppercase bg-slate-50/50">
+                <th className="px-3 sm:px-4 py-2 sm:py-3">Mot-cle</th>
+                <th className="px-3 sm:px-4 py-2 sm:py-3 text-center">Pos.</th>
+                <th className="px-3 sm:px-4 py-2 sm:py-3 text-right hidden sm:table-cell">Volume</th>
+                <th className="px-3 sm:px-4 py-2 sm:py-3 text-right">Trafic</th>
+                <th className="px-3 sm:px-4 py-2 sm:py-3 hidden md:table-cell">URL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {keywords.map((kw, i) => (
+                <tr key={i} className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors">
+                  <td className="px-3 sm:px-4 py-2 font-medium text-[#1E293B] text-xs sm:text-sm max-w-[150px] sm:max-w-none truncate">{kw.keyword}</td>
+                  <td className="px-3 sm:px-4 py-2 text-center">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold ${posBadgeColor(kw.position)}`}>
+                      {kw.position}
+                    </span>
+                  </td>
+                  <td className="px-3 sm:px-4 py-2 text-right text-slate-600 text-xs hidden sm:table-cell">{kw.volume.toLocaleString("fr-FR")}</td>
+                  <td className="px-3 sm:px-4 py-2 text-right font-medium text-xs sm:text-sm">{Math.round(kw.traffic).toLocaleString("fr-FR")}</td>
+                  <td className="px-3 sm:px-4 py-2 text-xs text-slate-400 hidden md:table-cell">
+                    <a href={kw.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-[#2E6AB0] transition-colors">
+                      {truncateUrl(kw.url, 30)} <ExternalLink className="w-3 h-3 shrink-0" />
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 
@@ -273,7 +333,7 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#F8FAFC] gap-4">
         <p className="text-lg text-red-600 font-semibold">Erreur : {error}</p>
-        <a href="/" className="text-[#2E86C1] underline">Retour</a>
+        <a href="/" className="text-[#2E6AB0] underline">Retour</a>
       </div>
     );
   }
@@ -292,7 +352,7 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
 
   const keywordDistribution = [
     { name: "Top 3", value: data.keywords.top3, fill: "#28A745" },
-    { name: "Top 4-10", value: Math.max(0, data.keywords.top10 - data.keywords.top3), fill: "#2E86C1" },
+    { name: "Top 4-10", value: Math.max(0, data.keywords.top10 - data.keywords.top3), fill: "#2E6AB0" },
     { name: "Top 11-50", value: Math.max(0, data.keywords.top50 - data.keywords.top10), fill: "#F39C12" },
     { name: "Top 51-100", value: Math.max(0, data.keywords.top100 - data.keywords.top50), fill: "#94A3B8" },
   ].filter(d => d.value > 0);
@@ -329,43 +389,45 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
       {/* ---- Header ---- */}
-      <header className="bg-gradient-to-r from-[#1A2744] to-[#2E4A6E] text-white px-6 py-4 flex items-center justify-between no-print:sticky no-print:top-0 no-print:z-50 shadow-lg">
-        <div className="flex items-center gap-3">
-          <a href="/" className="no-print hover:bg-white/10 p-1.5 rounded-lg transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </a>
-          <div className="w-9 h-9 rounded-lg bg-white/10 backdrop-blur flex items-center justify-center">
-            <Zap className="w-5 h-5" />
+      <header className="bg-gradient-to-r from-[#1A2744] to-[#2E4A6E] text-white px-3 sm:px-6 py-3 sm:py-4 no-print:sticky no-print:top-0 no-print:z-50 shadow-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <a href="/" className="no-print hover:bg-white/10 p-1 sm:p-1.5 rounded-lg transition-colors shrink-0">
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            </a>
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg bg-white/10 backdrop-blur flex items-center justify-center shrink-0">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs sm:text-sm font-semibold opacity-80">Audit Flash</span>
+              <span className="mx-1 sm:mx-2 text-white/30">|</span>
+              <span className="text-sm sm:text-base font-bold truncate">{data.domain}</span>
+            </div>
           </div>
-          <div>
-            <span className="text-sm font-semibold opacity-80">Audit Flash</span>
-            <span className="mx-2 text-white/30">|</span>
-            <span className="text-base font-bold">{data.domain}</span>
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <span className="text-xs text-white/60 hidden md:block">{formatDate(data.timestamp)}</span>
+            <div
+              className="flex items-center px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-lg"
+              style={{ backgroundColor: scoreColor(data.scores.global) }}
+            >
+              {data.scores.global}/100
+            </div>
+            <button
+              onClick={() => window.print()}
+              className="no-print hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium transition-colors cursor-pointer backdrop-blur"
+            >
+              <Printer className="w-3.5 h-3.5" /> Imprimer
+            </button>
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-white/60 hidden sm:block">{formatDate(data.timestamp)}</span>
-          <div
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold shadow-lg"
-            style={{ backgroundColor: scoreColor(data.scores.global) }}
-          >
-            {data.scores.global}/100
-          </div>
-          <button
-            onClick={() => window.print()}
-            className="no-print flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium transition-colors cursor-pointer backdrop-blur"
-          >
-            <Printer className="w-3.5 h-3.5" /> Imprimer
-          </button>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
 
         {/* ---- Hero: Score global + Radar ---- */}
         <FadeIn delay={0}>
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-8">
-            <div className="flex flex-col lg:flex-row items-center gap-8">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
+            <div className="flex flex-col lg:flex-row items-center gap-6 sm:gap-8">
               {/* Big score */}
               <div className="flex flex-col items-center gap-2">
                 <ScoreGauge score={data.scores.global} label="Score global" size="lg" />
@@ -377,27 +439,27 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
               </div>
 
               {/* Radar chart */}
-              <div className="flex-1 w-full h-72">
+              <div className="flex-1 w-full h-56 sm:h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={radarData} outerRadius="75%">
+                  <RadarChart data={radarData} outerRadius="70%">
                     <PolarGrid stroke="#E5E7EB" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fill: "#475569" }} />
-                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10, fill: "#94A3B8" }} />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "#475569" }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 9, fill: "#94A3B8" }} />
                     <Radar
                       name="Score"
                       dataKey="value"
-                      stroke="#2E86C1"
-                      fill="#2E86C1"
+                      stroke="#2E6AB0"
+                      fill="#2E6AB0"
                       fillOpacity={0.2}
                       strokeWidth={2}
-                      dot={{ r: 4, fill: "#2E86C1" }}
+                      dot={{ r: 4, fill: "#2E6AB0" }}
                     />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
 
               {/* Mini scores */}
-              <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 min-w-[160px]">
+              <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-1 gap-2 sm:gap-3 w-full lg:w-auto lg:min-w-[160px]">
                 {([
                   ["On-page", data.scores.onpage],
                   ["Positionnement", data.scores.rankings],
@@ -405,11 +467,11 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
                   ["Ergonomie", data.scores.usability],
                   ["Social", data.scores.social],
                 ] as const).map(([label, score]) => (
-                  <div key={label} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-50">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ backgroundColor: scoreColor(score) }}>
+                  <div key={label} className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-50">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold text-white shrink-0" style={{ backgroundColor: scoreColor(score) }}>
                       {score}
                     </div>
-                    <span className="text-xs font-medium text-slate-600">{label}</span>
+                    <span className="text-[10px] sm:text-xs font-medium text-slate-600 leading-tight">{label}</span>
                   </div>
                 ))}
               </div>
@@ -419,9 +481,9 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
 
         {/* ---- Lighthouse scores as horizontal bars ---- */}
         <FadeIn delay={150}>
-          <Section title="Scores Lighthouse" icon={<Target className="w-5 h-5 text-[#2E86C1]" />}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 h-72">
+          <Section title="Scores Lighthouse" icon={<Target className="w-5 h-5 text-[#2E6AB0]" />}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-5 h-60 sm:h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={lighthouseBarData} layout="vertical" margin={{ left: 10, right: 30 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" horizontal={false} />
@@ -457,48 +519,58 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
 
         {/* ---- Core Web Vitals ---- */}
         <FadeIn delay={300}>
-          <Section title="Core Web Vitals" icon={<TrendingUp className="w-5 h-5 text-[#2E86C1]" />}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* CWV Bar chart with thresholds */}
-              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 h-80">
+          <Section title="Core Web Vitals" icon={<TrendingUp className="w-5 h-5 text-[#2E6AB0]" />}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+              {/* CWV Area chart with threshold lines */}
+              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-5 h-64 sm:h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={cwvChartData} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                  <AreaChart data={cwvChartData} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                    <defs>
+                      <linearGradient id="cwvGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2E6AB0" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#2E6AB0" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#475569" }} />
-                    <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#475569" }} />
+                    <YAxis tick={{ fontSize: 10, fill: "#94A3B8" }} />
                     <Tooltip
                       formatter={(value) => [formatMs(Number(value)), "Valeur"]}
                       contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E5E7EB" }}
                     />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60} animationDuration={1500}>
-                      {cwvChartData.map((entry, idx) => (
-                        <Cell
-                          key={idx}
-                          fill={entry.value <= entry.good ? "#28A745" : entry.value <= entry.bad ? "#F39C12" : "#DC3545"}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
+                    <ReferenceLine y={2500} stroke="#28A745" strokeDasharray="6 3" label={{ value: "Bon", position: "right", fill: "#28A745", fontSize: 10 }} />
+                    <ReferenceLine y={4000} stroke="#DC3545" strokeDasharray="6 3" label={{ value: "Mauvais", position: "right", fill: "#DC3545", fontSize: 10 }} />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#2E6AB0"
+                      strokeWidth={2.5}
+                      fill="url(#cwvGradient)"
+                      dot={{ r: 5, fill: "#2E6AB0", strokeWidth: 2, stroke: "#fff" }}
+                      activeDot={{ r: 7, fill: "#F5A623", stroke: "#fff", strokeWidth: 2 }}
+                      animationDuration={1500}
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
 
               {/* KPI cards */}
-              <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-3">
                 <KpiCard
                   value={formatMs(data.cwv.lcp)}
-                  label="LCP (Largest Contentful Paint)"
+                  label="LCP"
                   threshold={{ good: 2500, bad: 4000 }}
                   numericValue={data.cwv.lcp}
                 />
                 <KpiCard
                   value={data.cwv.cls.toFixed(3)}
-                  label="CLS (Cumulative Layout Shift)"
+                  label="CLS"
                   threshold={{ good: 0.1, bad: 0.25, unit: "" }}
                   numericValue={data.cwv.cls}
                 />
-                <KpiCard value={formatMs(data.cwv.tbt)} label="TBT (Total Blocking Time)" />
+                <KpiCard value={formatMs(data.cwv.tbt)} label="TBT" />
                 <KpiCard value={formatMs(data.cwv.speedIndex)} label="Speed Index" />
-                <KpiCard value={formatBytes(data.cwv.totalWeight)} label="Poids total" />
+                <KpiCard value={formatBytes(data.cwv.totalWeight)} label="Poids total" className="col-span-2 lg:col-span-1" />
               </div>
             </div>
           </Section>
@@ -506,9 +578,9 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
 
         {/* ---- Checks on-page ---- */}
         <FadeIn delay={450}>
-          <Section title="Verification on-page" icon={<Shield className="w-5 h-5 text-[#2E86C1]" />}>
+          <Section title="Verification on-page" icon={<Shield className="w-5 h-5 text-[#2E6AB0]" />}>
             {/* Summary bar */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-4">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-5 mb-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-semibold text-slate-700">
                   <AnimatedCounter value={passedChecks} className="text-lg font-bold" /> / {totalChecks} verifications reussies
@@ -562,35 +634,35 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
 
         {/* ---- Mots-cles ---- */}
         <FadeIn delay={600}>
-          <Section title="Analyse des mots-cles" icon={<TrendingUp className="w-5 h-5 text-[#2E86C1]" />}>
+          <Section title="Analyse des mots-cles" icon={<TrendingUp className="w-5 h-5 text-[#2E6AB0]" />}>
             {/* Big KPIs with animated counters */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl p-4 shadow-md">
-                <AnimatedCounter value={data.keywords.total} className="text-2xl font-bold block" />
-                <span className="text-xs opacity-80 mt-1 block">Mots-cles totaux</span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
+              <div className="bg-gradient-to-br from-[#2E6AB0] to-[#1A4A8A] text-white rounded-2xl p-3 sm:p-4 shadow-md">
+                <AnimatedCounter value={data.keywords.total} className="text-xl sm:text-2xl font-bold block" />
+                <span className="text-[10px] sm:text-xs opacity-80 mt-1 block">Mots-cles totaux</span>
               </div>
-              <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl p-4 shadow-md">
-                <AnimatedCounter value={data.keywords.top3} className="text-2xl font-bold block" />
-                <span className="text-xs opacity-80 mt-1 block">Top 3</span>
+              <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl p-3 sm:p-4 shadow-md">
+                <AnimatedCounter value={data.keywords.top3} className="text-xl sm:text-2xl font-bold block" />
+                <span className="text-[10px] sm:text-xs opacity-80 mt-1 block">Top 3</span>
               </div>
-              <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-2xl p-4 shadow-md">
-                <AnimatedCounter value={data.keywords.top10} className="text-2xl font-bold block" />
-                <span className="text-xs opacity-80 mt-1 block">Top 10</span>
+              <div className="bg-gradient-to-br from-[#2E6AB0] to-cyan-600 text-white rounded-2xl p-3 sm:p-4 shadow-md">
+                <AnimatedCounter value={data.keywords.top10} className="text-xl sm:text-2xl font-bold block" />
+                <span className="text-[10px] sm:text-xs opacity-80 mt-1 block">Top 10</span>
               </div>
-              <div className="bg-gradient-to-br from-orange-400 to-orange-500 text-white rounded-2xl p-4 shadow-md">
-                <AnimatedCounter value={data.keywords.top50} className="text-2xl font-bold block" />
-                <span className="text-xs opacity-80 mt-1 block">Top 50</span>
+              <div className="bg-gradient-to-br from-[#F5A623] to-orange-500 text-white rounded-2xl p-3 sm:p-4 shadow-md">
+                <AnimatedCounter value={data.keywords.top50} className="text-xl sm:text-2xl font-bold block" />
+                <span className="text-[10px] sm:text-xs opacity-80 mt-1 block">Top 50</span>
               </div>
-              <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl p-4 shadow-md">
-                <AnimatedCounter value={Math.round(data.keywords.estimatedTraffic)} className="text-2xl font-bold block" />
-                <span className="text-xs opacity-80 mt-1 block">Trafic estime/mois</span>
+              <div className="bg-gradient-to-br from-[#1A2744] to-[#2E4A6E] text-white rounded-2xl p-3 sm:p-4 shadow-md col-span-2 sm:col-span-1">
+                <AnimatedCounter value={Math.round(data.keywords.estimatedTraffic)} className="text-xl sm:text-2xl font-bold block" />
+                <span className="text-[10px] sm:text-xs opacity-80 mt-1 block">Trafic estime/mois</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
               {/* Bar chart: top keywords traffic */}
               {trafficChartData.length > 0 && (
-                <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5 shadow-sm h-80">
+                <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-4 sm:p-5 shadow-sm h-72 sm:h-80">
                   <h3 className="text-sm font-semibold text-slate-700 mb-3">Trafic par mot-cle (top 10)</h3>
                   <ResponsiveContainer width="100%" height="90%">
                     <BarChart data={trafficChartData} layout="vertical" margin={{ left: 10, right: 20 }}>
@@ -616,7 +688,7 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
 
               {/* Pie chart: keyword distribution */}
               {keywordDistribution.length > 0 && (
-                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm h-80">
+                <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-5 shadow-sm h-72 sm:h-80">
                   <h3 className="text-sm font-semibold text-slate-700 mb-3">Repartition des positions</h3>
                   <ResponsiveContainer width="100%" height="90%">
                     <PieChart>
@@ -643,40 +715,9 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
               )}
             </div>
 
-            {/* Keywords table */}
+            {/* Keywords table - collapsible */}
             {data.keywords.topKeywords.length > 0 && (
-              <div className="overflow-x-auto bg-white rounded-2xl border border-slate-100 shadow-sm">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-left text-xs text-[#64748B] uppercase bg-slate-50/50">
-                      <th className="px-4 py-3">Mot-cle</th>
-                      <th className="px-4 py-3 text-center">Position</th>
-                      <th className="px-4 py-3 text-right">Volume</th>
-                      <th className="px-4 py-3 text-right">Trafic</th>
-                      <th className="px-4 py-3">URL</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.keywords.topKeywords.map((kw, i) => (
-                      <tr key={i} className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors">
-                        <td className="px-4 py-2.5 font-medium text-[#1E293B]">{kw.keyword}</td>
-                        <td className="px-4 py-2.5 text-center">
-                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${posBadgeColor(kw.position)}`}>
-                            {kw.position}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-slate-600">{kw.volume.toLocaleString("fr-FR")}</td>
-                        <td className="px-4 py-2.5 text-right font-medium">{Math.round(kw.traffic).toLocaleString("fr-FR")}</td>
-                        <td className="px-4 py-2.5 text-xs text-slate-400">
-                          <a href={kw.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-[#2E86C1] transition-colors">
-                            {truncateUrl(kw.url)} <ExternalLink className="w-3 h-3 shrink-0" />
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <KeywordsTable keywords={data.keywords.topKeywords} />
             )}
           </Section>
         </FadeIn>
@@ -685,7 +726,7 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
         {data.aiRecommendations && (
           <FadeIn delay={750}>
             <Section title="Recommandations IA" icon={<Sparkles className="w-5 h-5 text-amber-500" />}>
-              <div className="bg-gradient-to-br from-white to-amber-50/30 rounded-2xl border border-amber-200/50 shadow-sm p-6">
+              <div className="bg-gradient-to-br from-white to-amber-50/30 rounded-2xl border border-[#F5A623]/30 shadow-sm p-4 sm:p-6">
                 <div className="prose prose-sm prose-slate max-w-none [&_h1]:text-lg [&_h1]:font-bold [&_h1]:text-[#1A2744] [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-[#1A2744] [&_h3]:text-sm [&_h3]:font-semibold [&_strong]:text-[#1A2744] [&_li]:text-slate-600 [&_p]:text-slate-600">
                   {data.aiRecommendations.split("\n").map((line, i) => {
                     if (line.startsWith("# ")) return <h1 key={i}>{line.slice(2)}</h1>;
@@ -697,7 +738,7 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
                       const parts = content.split(/(\*\*[^*]+\*\*)/g);
                       return (
                         <div key={i} className="flex items-start gap-2 ml-2 my-1">
-                          <span className="text-amber-500 mt-0.5">&#8226;</span>
+                          <span className="text-[#F5A623] mt-0.5">&#8226;</span>
                           <span>
                             {parts.map((part, j) =>
                               part.startsWith("**") && part.endsWith("**")
@@ -713,7 +754,7 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
                       const parts = content.split(/(\*\*[^*]+\*\*)/g);
                       return (
                         <div key={i} className="flex items-start gap-2 ml-2 my-1">
-                          <span className="text-amber-600 font-semibold min-w-[1.2em]">{line.match(/^\d+/)?.[0]}.</span>
+                          <span className="text-[#F5A623] font-semibold min-w-[1.2em]">{line.match(/^\d+/)?.[0]}.</span>
                           <span>
                             {parts.map((part, j) =>
                               part.startsWith("**") && part.endsWith("**")
@@ -736,7 +777,7 @@ export default function AuditPage({ params }: { params: Promise<{ domain: string
         {/* ---- Infos serveur ---- */}
         <FadeIn delay={900}>
           <Section title="Informations serveur">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               <KpiCard value={data.server.cms} label="CMS" />
               <KpiCard value={data.server.server} label="Serveur" />
               <KpiCard value={data.server.encoding} label="Encodage" />
