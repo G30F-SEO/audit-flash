@@ -99,10 +99,18 @@ async function fetchHaloscanOverview(domain: string): Promise<{ data: Record<str
   const key = process.env.HALOSCAN_API_KEY;
   if (!key) return { data: null, status: "NO_API_KEY" };
   try {
-    const url = `https://api.haloscan.com/v2/domains/overview?input=${encodeURIComponent(domain)}`;
-    console.log("[Haloscan Overview] Fetching:", url);
+    const url = "https://api.haloscan.com/api/domains/overview";
+    console.log("[Haloscan Overview] POST:", url, "domain:", domain);
     const res = await fetch(url, {
-      headers: { "x-api-key": key },
+      method: "POST",
+      headers: {
+        "haloscan-api-key": key,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        input: domain,
+        requested_data: ["metrics", "positions_breakdown", "best_keywords"],
+      }),
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) {
@@ -123,10 +131,20 @@ async function fetchHaloscanPositions(domain: string): Promise<{ data: Record<st
   const key = process.env.HALOSCAN_API_KEY;
   if (!key) return { data: null, status: "NO_API_KEY" };
   try {
-    const url = `https://api.haloscan.com/v2/domains/positions?input=${encodeURIComponent(domain)}&lineCount=20&order_by=traffic&order=desc`;
-    console.log("[Haloscan Positions] Fetching:", url);
+    const url = "https://api.haloscan.com/api/domains/positions";
+    console.log("[Haloscan Positions] POST:", url, "domain:", domain);
     const res = await fetch(url, {
-      headers: { "x-api-key": key },
+      method: "POST",
+      headers: {
+        "haloscan-api-key": key,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        input: domain,
+        lineCount: 20,
+        order_by: "traffic",
+        order: "desc",
+      }),
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) {
@@ -222,9 +240,13 @@ function extractLighthouse(raw: Record<string, unknown> | null) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const task = (raw as any)?.tasks?.[0]?.result?.[0];
-    if (!task) return defaults;
+    if (!task) {
+      console.log("[extractLighthouse] No task found. Raw keys:", Object.keys(raw), "tasks:", JSON.stringify((raw as any)?.tasks?.map((t: any) => ({ status: t?.status_code, result_count: t?.result?.length })) ?? "none").slice(0, 300));
+      return defaults;
+    }
     const cats = task.categories;
     const audits = task.audits;
+    console.log("[extractLighthouse] Found task. Categories keys:", Object.keys(cats ?? {}), "Audits sample keys:", Object.keys(audits ?? {}).slice(0, 5));
     const lighthouse = {
       performance: Math.round((cats?.performance?.score ?? 0) * 100),
       accessibility: Math.round((cats?.accessibility?.score ?? 0) * 100),
@@ -276,11 +298,16 @@ function extractOnPage(raw: Record<string, unknown> | null) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const items = (raw as any)?.tasks?.[0]?.result;
-    if (!items || !items.length) return defaults;
+    if (!items || !items.length) {
+      console.log("[extractOnPage] No items found. Raw keys:", Object.keys(raw), "tasks:", JSON.stringify((raw as any)?.tasks?.map((t: any) => ({ status: t?.status_code, result_count: t?.result?.length })) ?? "none").slice(0, 300));
+      return defaults;
+    }
     const page = items[0];
+    console.log("[extractOnPage] Page keys:", Object.keys(page ?? {}));
     const meta = page?.meta ?? {};
     const onPage = page?.on_page ?? {};
     const pageChecks = page?.checks ?? {};
+    console.log("[extractOnPage] meta keys:", Object.keys(meta), "onPage keys:", Object.keys(onPage), "checks keys:", Object.keys(pageChecks));
 
     const titleVal = meta?.title ?? "";
     const descVal = meta?.description ?? "";
